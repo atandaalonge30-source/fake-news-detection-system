@@ -5,7 +5,9 @@ __pycache__/
 artifacts/*.joblib
 !artifacts/fake_news_model.joblib
 artifacts/*.png
+!artifacts/confusion_matrix.png
 artifacts/*.json
+!artifacts/metrics.json
 artifacts/*.csv
 data/*.csv
 !data/sample_news.csv

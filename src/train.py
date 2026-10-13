@@ -100,6 +100,52 @@ def metrics_for(y_true: pd.Series, predictions) -> dict:
     }
 
 
+def data_profile(data: pd.DataFrame, source: str) -> dict:
+    """Summarize the cleaned input data for the workflow report."""
+    class_counts = data["label"].value_counts().reindex(LABELS, fill_value=0)
+    total = len(data)
+    return {
+        "source": source,
+        "rows": total,
+        "class_counts": {label: int(class_counts[label]) for label in LABELS},
+        "class_percentages": {
+            label: round(float(class_counts[label] / total * 100), 1) for label in LABELS
+        },
+        "duplicate_texts": int(data["text"].duplicated().sum()),
+        "median_characters": int(data["text"].str.len().median()),
+        "preprocessing_summary": (
+            "Blank and short entries are removed and labels are standardized before "
+            "normalization inside the TF-IDF pipeline."
+        ),
+        "preprocessing_steps": [
+            "Combine available title and article text.",
+            "Remove blank records and entries shorter than the configured minimum.",
+            "Normalize case, URLs, HTML, punctuation and whitespace.",
+            "Extract English-stop-word-filtered TF-IDF unigrams and bigrams.",
+        ],
+    }
+
+
+def feature_analysis(model: Pipeline, limit: int = 12) -> dict:
+    """Return strongest signed linear-model terms for each learned class."""
+    vectorizer = model.named_steps["tfidf"]
+    classifier = model.named_steps["classifier"]
+    terms = vectorizer.get_feature_names_out()
+    coefficients = classifier.coef_[0]
+    negative_label, positive_label = str(classifier.classes_[0]), str(classifier.classes_[1])
+
+    def strongest(indices) -> list[dict]:
+        return [
+            {"term": str(terms[index]), "weight": round(float(coefficients[index]), 4)}
+            for index in indices
+        ]
+
+    return {
+        negative_label: strongest(coefficients.argsort()[:limit][::-1]),
+        positive_label: strongest(coefficients.argsort()[-limit:][::-1]),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train fake news NLP model")
     source = parser.add_mutually_exclusive_group(required=True)
@@ -118,11 +164,15 @@ def main() -> None:
     validation_metrics = metrics_for(y_val, model.predict(x_val))
     test_predictions = model.predict(x_test)
     test_metrics = metrics_for(y_test, test_predictions)
+    source = args.data.name if args.data else f"{args.fake_csv.name} + {args.true_csv.name}"
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, args.output_dir / "fake_news_model.joblib")
     (args.output_dir / "metrics.json").write_text(json.dumps({
-        "dataset_rows": int(len(data)), "splits": {"train": len(x_train), "validation": len(x_val), "test": len(x_test)},
+        "dataset_rows": int(len(data)),
+        "data_profile": data_profile(data, source),
+        "splits": {"train": len(x_train), "validation": len(x_val), "test": len(x_test)},
+        "feature_analysis": feature_analysis(model),
         "validation": validation_metrics, "test": test_metrics,
         "classification_report": classification_report(y_test, test_predictions, labels=LABELS, zero_division=0, output_dict=True),
     }, indent=2), encoding="utf-8")

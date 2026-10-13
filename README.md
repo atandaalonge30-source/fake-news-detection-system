@@ -1,6 +1,6 @@
 # Fake News Detection System Using Natural Language Processing
 
-This is a complete HND project implementation matching the supplied proposal: it treats fake-news detection as a **binary text-classification** problem. It trains a TF-IDF (unigram + bigram) and Logistic Regression model, uses train/validation/test splits, saves the trained pipeline, creates evaluation reports, and provides a Flask web demonstration.
+This is an HND project implementation matching the supplied proposal: it treats fake-news detection as a **binary text-classification** problem. It trains a TF-IDF (unigram + bigram) and Logistic Regression model, uses train/validation/test splits, saves the trained pipeline, creates evaluation reports, and provides a Flask web interface for predictions and workflow results.
 
 > Important: a model prediction is not proof that a story is false or true. It detects patterns learned from its training data. For real use, combine it with source checks, dates, primary evidence and professional fact-checking.
 
@@ -68,6 +68,9 @@ Outputs go to `artifacts/`:
 - `test_predictions.csv` — actual vs predicted records for error analysis.
 - `confusion_matrix.png` — visual evaluation result.
 
+The metrics report also includes a cleaned-data profile and the highest-weighted
+positive/negative model terms for the feature-analysis section of the web report.
+
 ## 4. Test a single item from the terminal
 
 ```powershell
@@ -84,6 +87,13 @@ python app.py
 
 Open `http://127.0.0.1:5000` in a browser. Paste text and select **Analyse text**. Stop the server with `Ctrl+C`.
 
+Open `/workflow` to view the data profile and class distribution, preprocessing steps,
+stratified split sizes, model evaluation metrics, confusion matrix, and top weighted
+TF-IDF terms by predicted class. Feature terms are learned associations, not causal
+evidence. The workflow report is generated during training and is served from
+`artifacts/metrics.json`; the confusion matrix is served from
+`artifacts/confusion_matrix.png`.
+
 ## 6. Publish the web app
 
 Render is the simplest option for this Flask application. Vercel is primarily
@@ -93,6 +103,8 @@ straightforward fit.
 
 1. Download a labelled dataset and train the model using one of the commands in
    section 3. Confirm that `artifacts/fake_news_model.joblib` was created.
+   Include `artifacts/metrics.json` and `artifacts/confusion_matrix.png` as well
+   so the deployed workflow report has its training summary and chart.
 2. Put this project folder in a GitHub repository. The trained model is
    git-ignored along with generated reports, so it must be explicitly added:
 

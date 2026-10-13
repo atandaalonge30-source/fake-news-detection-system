@@ -2,7 +2,7 @@ import argparse
 
 import pandas as pd
 
-from src.train import load_data
+from src.train import data_profile, load_data
 
 
 def test_load_data_maps_target_labels_as_documented(tmp_path):
@@ -20,3 +20,18 @@ def test_load_data_maps_target_labels_as_documented(tmp_path):
         "A real headline A sufficiently long real article for training.": "real",
         "A fake headline A sufficiently long fake article for training.": "fake",
     }
+
+
+def test_data_profile_summarizes_class_counts_and_duplicates():
+    data = pd.DataFrame({
+        "text": ["A repeated article", "A repeated article", "Another story"],
+        "label": ["fake", "fake", "real"],
+    })
+
+    profile = data_profile(data, "news.csv")
+
+    assert profile["source"] == "news.csv"
+    assert profile["rows"] == 3
+    assert profile["class_counts"] == {"fake": 2, "real": 1}
+    assert profile["class_percentages"] == {"fake": 66.7, "real": 33.3}
+    assert profile["duplicate_texts"] == 1
