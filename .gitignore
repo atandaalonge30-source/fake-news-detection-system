@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+artifacts/*.joblib
+!artifacts/fake_news_model.joblib
+artifacts/*.png
+artifacts/*.json
+artifacts/*.csv
+data/*.csv
+!data/sample_news.csv
