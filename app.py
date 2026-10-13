@@ -65,12 +65,18 @@ WORKFLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="
 <span class="step">5. Result reporting</span><span class="step">6. Feature analysis</span></div>
 
 <section class="panel"><h2>1. Data input &amp; exploratory analysis</h2>
-<p>Training data source: <strong>{{ data.source }}</strong></p>
+<p>Training data file: <strong>{{ data.source }}</strong></p>
+<p>Dataset: <strong>{{ data.dataset_attribution.name }}</strong>
+{% if data.dataset_attribution.source_url %} — <a href="{{ data.dataset_attribution.source_url }}" rel="noopener noreferrer">source and dataset card</a>{% endif %}</p>
+<p>Attribution: {{ data.dataset_attribution.publisher }}. License: {{ data.dataset_attribution.license }}.
+{% if data.dataset_attribution.accessed %}Accessed {{ data.dataset_attribution.accessed }}.{% endif %}</p>
 <div class="grid">
-<div class="card"><h3>Usable labelled records</h3><div class="value">{{ "{:,}".format(data.rows) }}</div></div>
-<div class="card"><h3>Duplicate text records</h3><div class="value">{{ "{:,}".format(data.duplicate_texts) }}</div></div>
+<div class="card"><h3>Records after deduplication</h3><div class="value">{{ "{:,}".format(data.rows) }}</div></div>
+<div class="card"><h3>Records before deduplication</h3><div class="value">{{ "{:,}".format(data.rows_before_deduplication) }}</div></div>
+<div class="card"><h3>Duplicate records removed</h3><div class="value">{{ "{:,}".format(data.duplicate_texts_removed) }}</div></div>
 <div class="card"><h3>Median article length</h3><div class="value">{{ "{:,}".format(data.median_characters) }} chars</div></div>
 </div>
+{% if data.conflicting_duplicate_groups_removed %}<p class="notice">{{ data.conflicting_duplicate_groups_removed }} repeated normalized texts had conflicting labels ({{ data.conflicting_duplicate_rows_removed }} rows); all copies were excluded.</p>{% endif %}
 <h3>Class distribution</h3>
 {% for label, count in data.class_counts.items() %}
 <p><strong>{{ label|upper }}</strong> — {{ "{:,}".format(count) }} ({{ "%.1f"|format(data.class_percentages[label]) }}%)</p>
@@ -100,6 +106,12 @@ WORKFLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="
 <div class="card"><h3>Random seed</h3><div class="value">42</div><div class="small">Reproducible split</div></div></div>
 <h3>Validation set</h3>{{ metrics_table(validation) }}
 <h3>Held-out test set</h3>{{ metrics_table(test) }}
+<h3>Test-set error analysis</h3>
+<p>{{ test_errors.total }} incorrect predictions out of {{ splits.test }} held-out examples.</p>
+<table><thead><tr><th>Error type</th><th>Count</th></tr></thead><tbody>
+<tr><td>Fake articles predicted real (missed fake)</td><td>{{ test_errors.fake_articles_missed }}</td></tr>
+<tr><td>Real articles predicted fake (false alarm)</td><td>{{ test_errors.real_articles_flagged_fake }}</td></tr>
+</tbody></table>
 </section>
 
 <section class="panel"><h2>5. Result reporting</h2>
@@ -113,7 +125,8 @@ WORKFLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="
 <h3>Terms associated with FAKE predictions</h3><div class="terms">{% for item in features.fake %}<span class="term">{{ item.term }}</span>{% endfor %}</div>
 <h3>Terms associated with REAL predictions</h3><div class="terms">{% for item in features.real %}<span class="term">{{ item.term }}</span>{% endfor %}</div>
 </section>
-<p class="notice"><strong>Important limitation:</strong> this model learns patterns from its training dataset. The high evaluation score is specific to that dataset and should not be interpreted as a fact-checking guarantee.</p>
+<p class="notice"><strong>Important limitations:</strong> this is a text-classification demonstration, not a fact-checker. Exact normalized duplicates are removed before splitting, but a random split can still share publisher, topic, or time-period patterns between train and test. The dataset is an educational benchmark with inherited label and source biases; independent, publisher-held-out and time-based evaluation would be needed to establish broader generalization.</p>
+<p class="small">For the full method, results, citations, and school-project discussion, see the <a href="https://github.com/atandaalonge30-source/fake-news-detection-system/blob/main/PROJECT_REPORT.md" rel="noopener noreferrer">project report</a>.</p>
 </body></html>"""
 
 
@@ -159,6 +172,7 @@ def workflow():
         splits=report["splits"],
         validation=report["validation"],
         test=report["test"],
+        test_errors=report["test_errors"],
         features=report["feature_analysis"],
     )
 

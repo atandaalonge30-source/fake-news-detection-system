@@ -1,184 +1,200 @@
 {
-  "dataset_rows": 44895,
-  "splits": {
-    "train": 31426,
-    "validation": 6734,
-    "test": 6735
-  },
-  "validation": {
-    "accuracy": 0.9911,
-    "fake": {
-      "precision": 0.9949,
-      "recall": 0.9881,
-      "f1": 0.9915
-    },
-    "real": {
-      "precision": 0.987,
-      "recall": 0.9944,
-      "f1": 0.9907
-    }
-  },
-  "test": {
-    "accuracy": 0.9921,
-    "fake": {
-      "precision": 0.9951,
-      "recall": 0.9898,
-      "f1": 0.9925
-    },
-    "real": {
-      "precision": 0.9889,
-      "recall": 0.9947,
-      "f1": 0.9918
-    }
-  },
-  "classification_report": {
-    "fake": {
-      "precision": 0.9951470168427062,
-      "recall": 0.989778534923339,
-      "f1-score": 0.9924555160142349,
-      "support": 3522.0
-    },
-    "real": {
-      "precision": 0.9888613861386139,
-      "recall": 0.9947089947089947,
-      "f1-score": 0.9917765709852598,
-      "support": 3213.0
-    },
-    "accuracy": 0.9921306607275426,
-    "macro avg": {
-      "precision": 0.99200420149066,
-      "recall": 0.9922437648161668,
-      "f1-score": 0.9921160434997474,
-      "support": 6735.0
-    },
-    "weighted avg": {
-      "precision": 0.9921483930190613,
-      "recall": 0.9921306607275426,
-      "f1-score": 0.9921316184079845,
-      "support": 6735.0
-    }
-  },
+  "dataset_rows": 38824,
   "data_profile": {
     "source": "fake_real_news.csv",
-    "rows": 44895,
+    "rows": 38824,
+    "rows_before_deduplication": 44895,
     "class_counts": {
-      "fake": 23479,
-      "real": 21416
+      "fake": 17899,
+      "real": 20925
     },
     "class_percentages": {
-      "fake": 52.3,
-      "real": 47.7
+      "fake": 46.1,
+      "real": 53.9
     },
-    "duplicate_texts": 5795,
-    "median_characters": 2268,
-    "preprocessing_summary": "Blank and short entries are removed and labels are standardized before normalization inside the TF-IDF pipeline.",
+    "duplicate_texts_removed": 6071,
+    "conflicting_duplicate_groups_removed": 0,
+    "conflicting_duplicate_rows_removed": 0,
+    "median_characters": 2288,
+    "dataset_attribution": {
+      "name": "Fake and Real News Dataset",
+      "publisher": "Gilchrist (Hugging Face mirror)",
+      "source_url": "https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset",
+      "license": "MIT (as stated by the dataset mirror)",
+      "accessed": "2026-10-13"
+    },
+    "preprocessing_summary": "Records were normalized and deduplicated before the stratified split to keep repeated normalized articles from crossing between splits.",
     "preprocessing_steps": [
       "Combine available title and article text.",
       "Remove blank records and entries shorter than the configured minimum.",
-      "Normalize case, URLs, HTML, punctuation and whitespace.",
+      "Normalize case, URLs, HTML, punctuation and whitespace for duplicate detection and feature extraction.",
+      "Remove duplicate normalized articles; discard all copies of any duplicate with conflicting labels.",
       "Extract English-stop-word-filtered TF-IDF unigrams and bigrams."
     ]
+  },
+  "splits": {
+    "train": 27176,
+    "validation": 5824,
+    "test": 5824
   },
   "feature_analysis": {
     "fake": [
       {
-        "term": "hillary",
-        "weight": -4.6474
-      },
-      {
-        "term": "america",
-        "weight": -4.6564
-      },
-      {
         "term": "president trump",
-        "weight": -4.7858
+        "weight": -4.5155
       },
       {
-        "term": "gop",
-        "weight": -4.875
+        "term": "hillary",
+        "weight": -4.6383
       },
       {
         "term": "watch",
-        "weight": -4.8881
+        "weight": -4.6891
       },
       {
-        "term": "featured",
-        "weight": -5.4611
-      },
-      {
-        "term": "featured image",
-        "weight": -5.4833
+        "term": "america",
+        "weight": -4.7194
       },
       {
         "term": "obama",
-        "weight": -5.5524
+        "weight": -4.835
+      },
+      {
+        "term": "gop",
+        "weight": -5.0226
       },
       {
         "term": "read",
-        "weight": -5.5746
+        "weight": -5.4703
       },
       {
-        "term": "image",
-        "weight": -5.5987
+        "term": "featured",
+        "weight": -6.0884
+      },
+      {
+        "term": "featured image",
+        "weight": -6.1381
       },
       {
         "term": "just",
-        "weight": -6.232
+        "weight": -6.2108
+      },
+      {
+        "term": "image",
+        "weight": -6.3606
       },
       {
         "term": "video",
-        "weight": -10.6349
+        "weight": -10.4289
       }
     ],
     "real": [
       {
         "term": "reuters",
-        "weight": 22.4601
+        "weight": 19.5266
       },
       {
         "term": "said",
-        "weight": 12.76
+        "weight": 11.9384
       },
       {
         "term": "washington reuters",
-        "weight": 9.2662
-      },
-      {
-        "term": "president donald",
-        "weight": 5.3899
+        "weight": 8.3054
       },
       {
         "term": "washington",
-        "weight": 5.3558
+        "weight": 5.2683
+      },
+      {
+        "term": "president donald",
+        "weight": 5.1051
       },
       {
         "term": "wednesday",
-        "weight": 4.9219
-      },
-      {
-        "term": "thursday",
-        "weight": 4.6751
+        "weight": 4.7603
       },
       {
         "term": "tuesday",
-        "weight": 4.6526
+        "weight": 4.5213
+      },
+      {
+        "term": "thursday",
+        "weight": 4.1574
       },
       {
         "term": "reuters president",
-        "weight": 4.6306
-      },
-      {
-        "term": "republican",
-        "weight": 4.0949
+        "weight": 4.1381
       },
       {
         "term": "minister",
-        "weight": 4.0738
+        "weight": 3.7798
       },
       {
-        "term": "friday",
-        "weight": 3.9181
+        "term": "monday",
+        "weight": 3.7207
+      },
+      {
+        "term": "republican",
+        "weight": 3.7168
       }
     ]
+  },
+  "test_errors": {
+    "fake_articles_missed": 40,
+    "real_articles_flagged_fake": 21,
+    "total": 61
+  },
+  "validation": {
+    "accuracy": 0.989,
+    "fake": {
+      "precision": 0.9947,
+      "recall": 0.9814,
+      "f1": 0.988
+    },
+    "real": {
+      "precision": 0.9843,
+      "recall": 0.9955,
+      "f1": 0.9899
+    }
+  },
+  "test": {
+    "accuracy": 0.9895,
+    "fake": {
+      "precision": 0.9921,
+      "recall": 0.9851,
+      "f1": 0.9886
+    },
+    "real": {
+      "precision": 0.9873,
+      "recall": 0.9933,
+      "f1": 0.9903
+    }
+  },
+  "classification_report": {
+    "fake": {
+      "precision": 0.9921230307576894,
+      "recall": 0.9851024208566108,
+      "f1-score": 0.9886002616333396,
+      "support": 2685.0
+    },
+    "real": {
+      "precision": 0.987333755541482,
+      "recall": 0.9933099713284486,
+      "f1-score": 0.9903128473876449,
+      "support": 3139.0
+    },
+    "accuracy": 0.9895260989010989,
+    "macro avg": {
+      "precision": 0.9897283931495857,
+      "recall": 0.9892061960925297,
+      "f1-score": 0.9894565545104923,
+      "support": 5824.0
+    },
+    "weighted avg": {
+      "precision": 0.9895417232536243,
+      "recall": 0.9895260989010989,
+      "f1-score": 0.9895233053632099,
+      "support": 5824.0
+    }
   }
 }

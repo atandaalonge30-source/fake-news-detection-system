@@ -58,10 +58,20 @@ def test_workflow_page_displays_report_data(monkeypatch, tmp_path):
         "data_profile": {
             "source": "news.csv",
             "rows": 100,
+            "rows_before_deduplication": 110,
             "class_counts": {"fake": 50, "real": 50},
             "class_percentages": {"fake": 50.0, "real": 50.0},
-            "duplicate_texts": 2,
+            "duplicate_texts_removed": 10,
+            "conflicting_duplicate_groups_removed": 0,
+            "conflicting_duplicate_rows_removed": 0,
             "median_characters": 240,
+            "dataset_attribution": {
+                "name": "User-provided labelled dataset",
+                "publisher": "Not supplied",
+                "source_url": "",
+                "license": "Check the source dataset's license",
+                "accessed": "",
+            },
             "preprocessing_summary": "Cleaned text.",
             "preprocessing_steps": ["Normalize text."],
         },
@@ -80,6 +90,11 @@ def test_workflow_page_displays_report_data(monkeypatch, tmp_path):
             "fake": [{"term": "fabricated claim", "weight": -1.2}],
             "real": [{"term": "official report", "weight": 1.4}],
         },
+        "test_errors": {
+            "fake_articles_missed": 2,
+            "real_articles_flagged_fake": 1,
+            "total": 3,
+        },
     }), encoding="utf-8")
     monkeypatch.setattr("app.METRICS_PATH", metrics_path)
 
@@ -91,6 +106,8 @@ def test_workflow_page_displays_report_data(monkeypatch, tmp_path):
     assert b"Training &amp; evaluation" in response.data
     assert b"90.0%" in response.data
     assert b"fabricated claim" in response.data
+    assert b"Duplicate records removed" in response.data
+    assert b"3 incorrect predictions" in response.data
 
 
 def test_workflow_page_reports_missing_training_metrics(monkeypatch, tmp_path):

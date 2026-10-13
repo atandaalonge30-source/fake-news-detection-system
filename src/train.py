@@ -71,9 +71,29 @@ def load_data(args: argparse.Namespace) -> pd.DataFrame:
     unknown = set(result["label"]) - set(LABELS)
     if unknown:
         raise ValueError(f"Labels must be fake/real or 0/1; found {sorted(unknown)}")
+    result["_normalized_text"] = result["text"].map(clean_text)
+    result = result[result["_normalized_text"].str.len() > 0].copy()
     if result["label"].nunique() != 2:
         raise ValueError("Training needs examples for both fake and real labels.")
-    return result.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
+
+    rows_before_deduplication = len(result)
+    labels_per_text = result.groupby("_normalized_text", sort=False)["label"].nunique()
+    conflicting_texts = set(labels_per_text[labels_per_text > 1].index)
+    conflicting_rows = int(result["_normalized_text"].isin(conflicting_texts).sum())
+    result = result[~result["_normalized_text"].isin(conflicting_texts)].copy()
+    duplicate_texts_removed = int(result.duplicated("_normalized_text").sum())
+    result = result.drop_duplicates("_normalized_text", keep="first")
+    result = result.drop(columns="_normalized_text")
+    if result["label"].nunique() != 2:
+        raise ValueError("Deduplication left fewer than two classes; check the dataset labels.")
+    result = result.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
+    result.attrs["deduplication"] = {
+        "rows_before_deduplication": rows_before_deduplication,
+        "duplicate_texts_removed": duplicate_texts_removed,
+        "conflicting_duplicate_groups_removed": len(conflicting_texts),
+        "conflicting_duplicate_rows_removed": conflicting_rows,
+    }
+    return result
 
 
 def split_data(data: pd.DataFrame) -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series, pd.Series, pd.Series]:
@@ -104,23 +124,43 @@ def data_profile(data: pd.DataFrame, source: str) -> dict:
     """Summarize the cleaned input data for the workflow report."""
     class_counts = data["label"].value_counts().reindex(LABELS, fill_value=0)
     total = len(data)
+    deduplication = data.attrs.get("deduplication", {})
+    duplicate_texts = int(
+        deduplication.get("duplicate_texts_removed", data["text"].map(clean_text).duplicated().sum())
+    )
+    source_is_reference_dataset = source == "fake_real_news.csv"
     return {
         "source": source,
         "rows": total,
+        "rows_before_deduplication": int(deduplication.get("rows_before_deduplication", total)),
         "class_counts": {label: int(class_counts[label]) for label in LABELS},
         "class_percentages": {
             label: round(float(class_counts[label] / total * 100), 1) for label in LABELS
         },
-        "duplicate_texts": int(data["text"].duplicated().sum()),
-        "median_characters": int(data["text"].str.len().median()),
-        "preprocessing_summary": (
-            "Blank and short entries are removed and labels are standardized before "
-            "normalization inside the TF-IDF pipeline."
+        "duplicate_texts_removed": duplicate_texts,
+        "conflicting_duplicate_groups_removed": int(
+            deduplication.get("conflicting_duplicate_groups_removed", 0)
         ),
+        "conflicting_duplicate_rows_removed": int(
+            deduplication.get("conflicting_duplicate_rows_removed", 0)
+        ),
+        "median_characters": int(data["text"].str.len().median()),
+        "dataset_attribution": {
+            "name": "Fake and Real News Dataset" if source_is_reference_dataset else "User-provided labelled dataset",
+            "publisher": "Gilchrist (Hugging Face mirror)" if source_is_reference_dataset else "Not supplied",
+            "source_url": (
+                "https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset"
+                if source_is_reference_dataset else ""
+            ),
+            "license": "MIT (as stated by the dataset mirror)" if source_is_reference_dataset else "Check the source dataset's license",
+            "accessed": "2026-10-13" if source_is_reference_dataset else "",
+        },
+        "preprocessing_summary": "Records were normalized and deduplicated before the stratified split to keep repeated normalized articles from crossing between splits.",
         "preprocessing_steps": [
             "Combine available title and article text.",
             "Remove blank records and entries shorter than the configured minimum.",
-            "Normalize case, URLs, HTML, punctuation and whitespace.",
+            "Normalize case, URLs, HTML, punctuation and whitespace for duplicate detection and feature extraction.",
+            "Remove duplicate normalized articles; discard all copies of any duplicate with conflicting labels.",
             "Extract English-stop-word-filtered TF-IDF unigrams and bigrams.",
         ],
     }
@@ -164,6 +204,12 @@ def main() -> None:
     validation_metrics = metrics_for(y_val, model.predict(x_val))
     test_predictions = model.predict(x_test)
     test_metrics = metrics_for(y_test, test_predictions)
+    test_confusion = confusion_matrix(y_test, test_predictions, labels=LABELS)
+    test_errors = {
+        "fake_articles_missed": int(test_confusion[0, 1]),
+        "real_articles_flagged_fake": int(test_confusion[1, 0]),
+        "total": int((y_test.to_numpy() != test_predictions).sum()),
+    }
     source = args.data.name if args.data else f"{args.fake_csv.name} + {args.true_csv.name}"
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -173,6 +219,7 @@ def main() -> None:
         "data_profile": data_profile(data, source),
         "splits": {"train": len(x_train), "validation": len(x_val), "test": len(x_test)},
         "feature_analysis": feature_analysis(model),
+        "test_errors": test_errors,
         "validation": validation_metrics, "test": test_metrics,
         "classification_report": classification_report(y_test, test_predictions, labels=LABELS, zero_division=0, output_dict=True),
     }, indent=2), encoding="utf-8")

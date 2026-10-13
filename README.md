@@ -30,7 +30,7 @@ Do **not** evaluate only on the four-row `sample_news.csv`; it exists solely to 
 
 If your dataset is one CSV instead, it must contain `label` plus `text` (or `title` + `text`) columns. `label` may be `fake`/`real` or `0`/`1` (`0 = fake`, `1 = real`). A CSV with a `target` column is also supported for the linked Fake and Real News Dataset (`0 = real`, `1 = fake`).
 
-For this project, you can use the educational Fake and Real News Dataset mirrored on Hugging Face: [dataset page](https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset). Its dataset card identifies an MIT license and credits Gilchrist; keep the attribution and license when redistributing the data or a model trained from it. Dataset labels and quality have limitations, so the result is a demonstration classifier, not a fact-checker.
+For this project, the trained demonstration uses the educational [Fake and Real News Dataset mirror on Hugging Face](https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset), accessed 2026-10-13. The dataset card credits Gilchrist, declares MIT, and links to the [Kaggle source dataset](https://www.kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset). Cite the dataset card and original source in your report, preserve the MIT notice when redistributing covered material, and verify the original source terms for your own use. The benchmark has inherited publisher, topic, period, and label biases; results do not establish real-world fact-checking accuracy.
 
 To train with that dataset after downloading `fake_real_news.csv` into `data/`, run:
 
@@ -55,11 +55,11 @@ python -m src.train --data data/my_labelled_news.csv
 The script does the following reproducibly (random seed 42):
 
 1. Combines title and article body, removes blank/very short items and standardizes labels.
-2. Stratifies the data into 70% training, 15% validation and 15% unseen test data.
-3. Normalizes text: lowercases it, removes URLs/HTML/punctuation and collapses extra spaces.
+2. Normalizes text and removes duplicate normalized articles **before** splitting. If identical normalized text has conflicting labels, all copies are excluded rather than arbitrarily assigning one label.
+3. Stratifies the remaining data into 70% training, 15% validation and 15% held-out test data.
 4. Extracts TF-IDF unigram and bigram features, excluding English stop words.
 5. Fits class-balanced Logistic Regression on the training portion.
-6. Reports validation and test accuracy, precision, recall and F1; then saves the fitted pipeline.
+6. Reports validation and held-out test accuracy, precision, recall, F1 and error counts; saves the fitted pipeline, confusion matrix, and feature-weight summary.
 
 Outputs go to `artifacts/`:
 
@@ -68,8 +68,10 @@ Outputs go to `artifacts/`:
 - `test_predictions.csv` — actual vs predicted records for error analysis.
 - `confusion_matrix.png` — visual evaluation result.
 
-The metrics report also includes a cleaned-data profile and the highest-weighted
-positive/negative model terms for the feature-analysis section of the web report.
+The metrics report also includes a cleaned-data profile, the duplicate/conflicting-label
+removal counts, dataset attribution, and highest-weighted model terms for the workflow
+report. `test_predictions.csv` remains local/ignored because it contains article text;
+use it to inspect errors in your project analysis without republishing the records.
 
 ## 4. Test a single item from the terminal
 
@@ -131,6 +133,31 @@ labelled dataset. The included sample CSV is only a format example and is too
 small for training. Do not treat predictions or their confidence as proof that
 a story is true or false.
 
+## Academic evaluation and responsible presentation
+
+See [`PROJECT_REPORT.md`](PROJECT_REPORT.md) for the current data citation,
+deduplication method, measured results, confusion matrix counts, feature
+discussion, limitations, and recommendations.
+
+The `/workflow` page and `artifacts/metrics.json` report the actual cleaned sample
+counts, class balance, duplicates removed, split sizes, validation/test metrics,
+confusion-matrix error totals and weighted terms. Explain these metrics in your own
+words in the report; include both strengths and limitations.
+
+Exact normalized-article duplicates are excluded before the split, which prevents
+the same normalized record from appearing in multiple partitions. This alone does
+not prove independent generalization: records from the same publisher, political
+topic or period may still appear in both training and test sets. A stronger follow-up
+study should use publisher/source-grouped or time-based holdout data and an
+independent dataset, selected before evaluating the final model.
+
+Use cautious wording such as **“classifies text using patterns learned from this
+dataset”**, not “verifies news.” The displayed feature terms are statistical
+associations, not causal reasons or fact evidence. Discuss false positives and
+false negatives from the held-out `test_predictions.csv`, dataset provenance,
+licence, label quality, class imbalance, and the possibility that modern or
+non-political stories differ from this benchmark.
+
 ## 7. Run basic automated tests
 
 ```powershell
@@ -139,11 +166,13 @@ pytest -q
 
 ## Suggested Chapter Four report structure
 
-1. State dataset name, source, total cleaned rows and class distribution.
-2. Explain the 70/15/15 split and why the test set was not used to tune the model.
-3. Insert `artifacts/confusion_matrix.png` and a table built from `artifacts/metrics.json`.
-4. Discuss precision (how many predicted labels were correct), recall (how many actual labels were found), F1 (their balance) and errors seen in `test_predictions.csv`.
-5. State limitations: dataset bias, changing writing styles, labels may be imperfect, and the system is not fact verification.
+1. Cite Gilchrist's [dataset card](https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset) and its linked Kaggle source; report its declared licence and access date.
+2. State the rows before and after normalized deduplication, number removed, final class counts and median text length.
+3. Explain the 70/15/15 stratified split, random seed 42, and why the held-out test set was not used to choose the model.
+4. Describe text normalization, TF-IDF unigrams/bigrams and class-balanced Logistic Regression.
+5. Insert `artifacts/confusion_matrix.png` and report accuracy, per-class precision, recall and F1 from `artifacts/metrics.json`.
+6. Discuss false positives and false negatives using local `artifacts/test_predictions.csv`; omit or anonymize article text in public material.
+7. Interpret feature weights cautiously and state the source, label, publisher and temporal limitations; recommend independent and group/time-based evaluation.
 
 ## Project layout
 
