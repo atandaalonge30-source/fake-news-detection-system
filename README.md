@@ -35,8 +35,16 @@ For this project, the trained demonstration uses the educational [Fake and Real 
 To train with that dataset after downloading `fake_real_news.csv` into `data/`, run:
 
 ```powershell
-python -m src.train --data data/fake_real_news.csv
+python -m src.train --data data/fake_real_news.csv --additional-real-data data/additional_real_examples.csv --additional-fake-data data/additional_fake_examples.csv
 ```
+
+The additional data files contain 12 user-labelled REAL examples and 13
+user-labelled FAKE examples. They are appended only to the training partition,
+not the validation or test data. Their labels have not been independently
+fact-checked, so these examples are a small supervised-training addition—not
+evidence of better overall accuracy or a claim-verification feature.
+Each supplemental example is weighted 50x during fitting so its supplied
+label has a meaningful effect despite the much larger base dataset.
 
 ## 3. Train and evaluate
 

@@ -25,6 +25,7 @@ from src.text_processing import clean_text
 
 RANDOM_STATE = 42
 LABELS = ["fake", "real"]
+ADDITIONAL_EXAMPLE_WEIGHT = 50.0
 
 
 def combine_title_and_text(frame: pd.DataFrame) -> pd.Series:
@@ -39,7 +40,7 @@ def combine_title_and_text(frame: pd.DataFrame) -> pd.Series:
     return (title + " " + body).str.strip()
 
 
-def load_data(args: argparse.Namespace) -> pd.DataFrame:
+def load_data(args: argparse.Namespace, require_both_labels: bool = True) -> pd.DataFrame:
     """Load either one labelled CSV or the usual Fake.csv / True.csv pair."""
     if args.data:
         data = pd.read_csv(args.data)
@@ -73,7 +74,9 @@ def load_data(args: argparse.Namespace) -> pd.DataFrame:
         raise ValueError(f"Labels must be fake/real or 0/1; found {sorted(unknown)}")
     result["_normalized_text"] = result["text"].map(clean_text)
     result = result[result["_normalized_text"].str.len() > 0].copy()
-    if result["label"].nunique() != 2:
+    if result.empty:
+        raise ValueError("No usable examples remain after cleaning.")
+    if require_both_labels and result["label"].nunique() != 2:
         raise ValueError("Training needs examples for both fake and real labels.")
 
     rows_before_deduplication = len(result)
@@ -84,7 +87,7 @@ def load_data(args: argparse.Namespace) -> pd.DataFrame:
     duplicate_texts_removed = int(result.duplicated("_normalized_text").sum())
     result = result.drop_duplicates("_normalized_text", keep="first")
     result = result.drop(columns="_normalized_text")
-    if result["label"].nunique() != 2:
+    if require_both_labels and result["label"].nunique() != 2:
         raise ValueError("Deduplication left fewer than two classes; check the dataset labels.")
     result = result.sample(frac=1, random_state=RANDOM_STATE).reset_index(drop=True)
     result.attrs["deduplication"] = {
@@ -94,6 +97,38 @@ def load_data(args: argparse.Namespace) -> pd.DataFrame:
         "conflicting_duplicate_rows_removed": conflicting_rows,
     }
     return result
+
+
+def load_additional_examples(
+    path: Path, data: pd.DataFrame, min_characters: int, expected_label: str
+) -> pd.Series:
+    """Load user-labelled examples for training without changing evaluation data."""
+    if expected_label not in LABELS:
+        raise ValueError(f"Expected label must be one of {LABELS}.")
+    args = argparse.Namespace(
+        data=path, fake_csv=None, true_csv=None, min_characters=min_characters
+    )
+    examples = load_data(args, require_both_labels=False)
+    if not examples["label"].eq(expected_label).all():
+        raise ValueError(
+            f"The additional {expected_label.upper()} data file must contain only "
+            f"'{expected_label}' labels."
+        )
+
+    labels_by_text = data.assign(_normalized_text=data["text"].map(clean_text))
+    labels_by_text = labels_by_text.groupby("_normalized_text")["label"].agg(set)
+    normalized_examples = examples["text"].map(clean_text)
+    conflicts = normalized_examples.map(
+        lambda text: bool(labels_by_text.get(text, set()) - {expected_label})
+    )
+    if conflicts.any():
+        raise ValueError(
+            f"Additional {expected_label.upper()} examples conflict with "
+            "oppositely-labelled training records."
+        )
+
+    already_present = normalized_examples.isin(labels_by_text.index)
+    return examples.loc[~already_present, "text"].reset_index(drop=True)
 
 
 def split_data(data: pd.DataFrame) -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series, pd.Series, pd.Series]:
@@ -192,6 +227,16 @@ def main() -> None:
     source.add_argument("--data", type=Path, help="CSV with text/title and label columns")
     source.add_argument("--fake-csv", type=Path, help="CSV containing fake articles")
     parser.add_argument("--true-csv", type=Path, help="CSV containing genuine articles (required with --fake-csv)")
+    parser.add_argument(
+        "--additional-real-data",
+        type=Path,
+        help="Optional CSV of user-labelled REAL examples added only to the training split",
+    )
+    parser.add_argument(
+        "--additional-fake-data",
+        type=Path,
+        help="Optional CSV of user-labelled FAKE examples added only to the training split",
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts"))
     parser.add_argument("--min-characters", type=int, default=40)
     parser.add_argument("--max-features", type=int, default=100000)
@@ -199,8 +244,31 @@ def main() -> None:
 
     data = load_data(args)
     x_train, y_train, x_val, y_val, x_test, y_test = split_data(data)
+    additional_example_counts = {}
+    known_training_data = data.copy()
+    for path, label in (
+        (args.additional_real_data, "real"),
+        (args.additional_fake_data, "fake"),
+    ):
+        if path:
+            examples = load_additional_examples(
+                path, known_training_data, args.min_characters, label
+            )
+            x_train = pd.concat([x_train, examples], ignore_index=True)
+            y_train = pd.concat([
+                y_train,
+                pd.Series([label] * len(examples), name="label"),
+            ], ignore_index=True)
+            known_training_data = pd.concat([
+                known_training_data,
+                pd.DataFrame({"text": examples, "label": label}),
+            ], ignore_index=True)
+            additional_example_counts[label] = len(examples)
     model = make_pipeline(args.max_features)
-    model.fit(x_train, y_train)
+    additional_count = sum(additional_example_counts.values())
+    sample_weights = [1.0] * (len(y_train) - additional_count)
+    sample_weights.extend([ADDITIONAL_EXAMPLE_WEIGHT] * additional_count)
+    model.fit(x_train, y_train, classifier__sample_weight=sample_weights)
     validation_metrics = metrics_for(y_val, model.predict(x_val))
     test_predictions = model.predict(x_test)
     test_metrics = metrics_for(y_test, test_predictions)
@@ -216,6 +284,8 @@ def main() -> None:
     joblib.dump(model, args.output_dir / "fake_news_model.joblib")
     (args.output_dir / "metrics.json").write_text(json.dumps({
         "dataset_rows": int(len(data)),
+        "additional_real_training_examples": int(additional_example_counts.get("real", 0)),
+        "additional_fake_training_examples": int(additional_example_counts.get("fake", 0)),
         "data_profile": data_profile(data, source),
         "splits": {"train": len(x_train), "validation": len(x_val), "test": len(x_test)},
         "feature_analysis": feature_analysis(model),

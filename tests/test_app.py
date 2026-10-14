@@ -75,7 +75,10 @@ def test_workflow_page_displays_report_data(monkeypatch, tmp_path):
             "preprocessing_summary": "Cleaned text.",
             "preprocessing_steps": ["Normalize text."],
         },
-        "splits": {"train": 70, "validation": 15, "test": 15},
+        "dataset_rows": 100,
+        "additional_real_training_examples": 12,
+        "additional_fake_training_examples": 13,
+        "splits": {"train": 95, "validation": 15, "test": 15},
         "validation": {
             "accuracy": 0.9,
             "fake": {"precision": 0.9, "recall": 0.9, "f1": 0.9},
@@ -105,6 +108,10 @@ def test_workflow_page_displays_report_data(monkeypatch, tmp_path):
     assert b"news.csv" in response.data
     assert b"Training &amp; evaluation" in response.data
     assert b"90.0%" in response.data
+    assert b"Additional REAL training examples" in response.data
+    assert b"Additional FAKE training examples" in response.data
+    assert b">12</div>" in response.data
+    assert b">13</div>" in response.data
     assert b"fabricated claim" in response.data
     assert b"Duplicate records removed" in response.data
     assert b"3 incorrect predictions" in response.data

@@ -11,3 +11,5 @@ artifacts/*.json
 artifacts/*.csv
 data/*.csv
 !data/sample_news.csv
+!data/additional_real_examples.csv
+!data/additional_fake_examples.csv

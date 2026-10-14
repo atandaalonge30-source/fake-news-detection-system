@@ -13,7 +13,7 @@ training dataset. It combines article titles and content, normalizes text,
 removes duplicate normalized records before data splitting, converts text to
 TF-IDF unigram and bigram features, and trains a class-weight-balanced
 Logistic Regression classifier. On a stratified held-out test set of 5,824
-deduplicated records, the current model achieved 98.95% accuracy. This is a
+deduplicated records, the current model achieved 98.88% accuracy. This is a
 benchmark result on one dataset, not evidence of accuracy on current news or a
 fact-checking capability. Dataset/source bias and the random split limit the
 conclusions that can be drawn.
@@ -77,17 +77,22 @@ original publisher's raw dataset counts.
 7. Report accuracy, per-class precision/recall/F1, a confusion matrix, and
    test-set error counts. Inspect the largest signed linear-model weights as
    feature associations.
+8. Add 12 user-labelled REAL examples and 13 user-labelled FAKE examples from
+   `data/additional_real_examples.csv` and `data/additional_fake_examples.csv`
+   to the training partition only. They are not independently fact-checked
+   and are excluded from validation and held-out test metrics; each has a
+   training weight of 50.
 
 ## Evaluation results
 
 | Held-out test metric | Fake | Real |
 |---|---:|---:|
-| Precision | 99.21% | 98.73% |
-| Recall | 98.51% | 99.33% |
-| F1-score | 98.86% | 99.03% |
+| Precision | 99.03% | 98.76% |
+| Recall | 98.55% | 99.17% |
+| F1-score | 98.79% | 98.97% |
 
-Overall test accuracy is **98.95%** (macro F1: **98.95%**). Validation
-accuracy is **98.90%**. The held-out test set contains 5,824 examples: 2,685
+Overall test accuracy is **98.88%** (macro F1: **98.88%**). Validation
+accuracy is **98.88%**. The held-out test set contains 5,824 examples: 2,685
 fake and 3,139 real.
 
 Confusion matrix (rows are actual labels, columns are predicted labels; order
@@ -95,11 +100,11 @@ is `fake`, then `real`):
 
 | Actual \ Predicted | Fake | Real |
 |---|---:|---:|
-| Fake | 2,645 | 40 |
-| Real | 21 | 3,118 |
+| Fake | 2,646 | 39 |
+| Real | 26 | 3,113 |
 
-There were 61 incorrect test predictions: 40 fake-labelled articles were
-predicted real, and 21 real-labelled articles were predicted fake. See the
+There were 65 incorrect test predictions: 39 fake-labelled articles were
+predicted real, and 26 real-labelled articles were predicted fake. See the
 generated `artifacts/confusion_matrix.png` and the local, git-ignored
 `artifacts/test_predictions.csv` for the chart and record-level error analysis.
 Do not publish article text from the error file without checking its source
@@ -151,7 +156,7 @@ validation.
 From the project root, with requirements installed:
 
 ```powershell
-python -m src.train --data data/fake_real_news.csv
+python -m src.train --data data/fake_real_news.csv --additional-real-data data/additional_real_examples.csv --additional-fake-data data/additional_fake_examples.csv
 pytest -q
 ```
 

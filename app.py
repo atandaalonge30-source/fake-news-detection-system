@@ -75,6 +75,8 @@ WORKFLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="
 <div class="card"><h3>Records before deduplication</h3><div class="value">{{ "{:,}".format(data.rows_before_deduplication) }}</div></div>
 <div class="card"><h3>Duplicate records removed</h3><div class="value">{{ "{:,}".format(data.duplicate_texts_removed) }}</div></div>
 <div class="card"><h3>Median article length</h3><div class="value">{{ "{:,}".format(data.median_characters) }} chars</div></div>
+<div class="card"><h3>Additional REAL training examples</h3><div class="value">{{ "{:,}".format(additional_real_examples) }}</div><div class="small">User-labelled; not included in held-out evaluation.</div></div>
+<div class="card"><h3>Additional FAKE training examples</h3><div class="value">{{ "{:,}".format(additional_fake_examples) }}</div><div class="small">User-labelled; not included in held-out evaluation.</div></div>
 </div>
 {% if data.conflicting_duplicate_groups_removed %}<p class="notice">{{ data.conflicting_duplicate_groups_removed }} repeated normalized texts had conflicting labels ({{ data.conflicting_duplicate_rows_removed }} rows); all copies were excluded.</p>{% endif %}
 <h3>Class distribution</h3>
@@ -94,7 +96,7 @@ WORKFLOW_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="
 <div class="grid">
 {% for split, count in splits.items() %}
 <div class="card"><h3>{{ split|title }}</h3><div class="value">{{ "{:,}".format(count) }}</div>
-<div class="small">{{ "%.1f"|format(count / data.rows * 100) }}% of usable records</div></div>
+<div class="small">{{ "%.1f"|format(count / total_records * 100) }}% of usable records</div></div>
 {% endfor %}
 </div>
 <p class="small">No records were synthetically resampled. Class-weight balancing is used during model fitting.</p>
@@ -170,6 +172,11 @@ def workflow():
         active="workflow",
         data=report["data_profile"],
         splits=report["splits"],
+        total_records=report.get("dataset_rows", sum(report["splits"].values()))
+        + report.get("additional_real_training_examples", 0)
+        + report.get("additional_fake_training_examples", 0),
+        additional_real_examples=report.get("additional_real_training_examples", 0),
+        additional_fake_examples=report.get("additional_fake_training_examples", 0),
         validation=report["validation"],
         test=report["test"],
         test_errors=report["test_errors"],

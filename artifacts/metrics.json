@@ -1,5 +1,7 @@
 {
   "dataset_rows": 38824,
+  "additional_real_training_examples": 12,
+  "additional_fake_training_examples": 13,
   "data_profile": {
     "source": "fake_real_news.csv",
     "rows": 38824,
@@ -33,7 +35,7 @@
     ]
   },
   "splits": {
-    "train": 27176,
+    "train": 27201,
     "validation": 5824,
     "test": 5824
   },
@@ -41,159 +43,159 @@
     "fake": [
       {
         "term": "president trump",
-        "weight": -4.5155
+        "weight": -4.5227
       },
       {
         "term": "hillary",
-        "weight": -4.6383
+        "weight": -4.5998
       },
       {
         "term": "watch",
-        "weight": -4.6891
+        "weight": -4.6052
       },
       {
         "term": "america",
-        "weight": -4.7194
+        "weight": -4.7151
       },
       {
         "term": "obama",
-        "weight": -4.835
+        "weight": -4.8276
       },
       {
         "term": "gop",
-        "weight": -5.0226
+        "weight": -4.9884
       },
       {
         "term": "read",
-        "weight": -5.4703
+        "weight": -5.4871
       },
       {
         "term": "featured",
-        "weight": -6.0884
+        "weight": -6.004
       },
       {
         "term": "featured image",
-        "weight": -6.1381
+        "weight": -6.0569
       },
       {
         "term": "just",
-        "weight": -6.2108
+        "weight": -6.1798
       },
       {
         "term": "image",
-        "weight": -6.3606
+        "weight": -6.2792
       },
       {
         "term": "video",
-        "weight": -10.4289
+        "weight": -10.498
       }
     ],
     "real": [
       {
         "term": "reuters",
-        "weight": 19.5266
+        "weight": 19.4114
       },
       {
         "term": "said",
-        "weight": 11.9384
+        "weight": 11.5468
       },
       {
         "term": "washington reuters",
-        "weight": 8.3054
+        "weight": 8.3388
       },
       {
         "term": "washington",
-        "weight": 5.2683
+        "weight": 5.2939
       },
       {
         "term": "president donald",
-        "weight": 5.1051
+        "weight": 5.0906
       },
       {
         "term": "wednesday",
-        "weight": 4.7603
+        "weight": 4.7354
       },
       {
         "term": "tuesday",
-        "weight": 4.5213
+        "weight": 4.5084
       },
       {
         "term": "thursday",
-        "weight": 4.1574
+        "weight": 4.1581
       },
       {
         "term": "reuters president",
-        "weight": 4.1381
-      },
-      {
-        "term": "minister",
-        "weight": 3.7798
+        "weight": 4.1349
       },
       {
         "term": "monday",
-        "weight": 3.7207
+        "weight": 3.9586
       },
       {
-        "term": "republican",
-        "weight": 3.7168
+        "term": "minister",
+        "weight": 3.8336
+      },
+      {
+        "term": "friday",
+        "weight": 3.7128
       }
     ]
   },
   "test_errors": {
-    "fake_articles_missed": 40,
-    "real_articles_flagged_fake": 21,
-    "total": 61
+    "fake_articles_missed": 39,
+    "real_articles_flagged_fake": 26,
+    "total": 65
   },
   "validation": {
-    "accuracy": 0.989,
+    "accuracy": 0.9888,
     "fake": {
       "precision": 0.9947,
-      "recall": 0.9814,
-      "f1": 0.988
+      "recall": 0.981,
+      "f1": 0.9878
     },
     "real": {
-      "precision": 0.9843,
+      "precision": 0.9839,
       "recall": 0.9955,
-      "f1": 0.9899
+      "f1": 0.9897
     }
   },
   "test": {
-    "accuracy": 0.9895,
+    "accuracy": 0.9888,
     "fake": {
-      "precision": 0.9921,
-      "recall": 0.9851,
-      "f1": 0.9886
+      "precision": 0.9903,
+      "recall": 0.9855,
+      "f1": 0.9879
     },
     "real": {
-      "precision": 0.9873,
-      "recall": 0.9933,
-      "f1": 0.9903
+      "precision": 0.9876,
+      "recall": 0.9917,
+      "f1": 0.9897
     }
   },
   "classification_report": {
     "fake": {
-      "precision": 0.9921230307576894,
-      "recall": 0.9851024208566108,
-      "f1-score": 0.9886002616333396,
+      "precision": 0.9902694610778443,
+      "recall": 0.9854748603351955,
+      "f1-score": 0.9878663431024828,
       "support": 2685.0
     },
     "real": {
-      "precision": 0.987333755541482,
-      "recall": 0.9933099713284486,
-      "f1-score": 0.9903128473876449,
+      "precision": 0.9876269035532995,
+      "recall": 0.9917171073590315,
+      "f1-score": 0.9896677793673502,
       "support": 3139.0
     },
-    "accuracy": 0.9895260989010989,
+    "accuracy": 0.9888392857142857,
     "macro avg": {
-      "precision": 0.9897283931495857,
-      "recall": 0.9892061960925297,
-      "f1-score": 0.9894565545104923,
+      "precision": 0.9889481823155719,
+      "recall": 0.9885959838471134,
+      "f1-score": 0.9887670612349164,
       "support": 5824.0
     },
     "weighted avg": {
-      "precision": 0.9895417232536243,
-      "recall": 0.9895260989010989,
-      "f1-score": 0.9895233053632099,
+      "precision": 0.9888451842801887,
+      "recall": 0.9888392857142857,
+      "f1-score": 0.98883727518274,
       "support": 5824.0
     }
   }

@@ -2,7 +2,7 @@ import argparse
 
 import pandas as pd
 
-from src.train import data_profile, load_data
+from src.train import data_profile, load_additional_examples, load_data
 
 
 def test_load_data_maps_target_labels_as_documented(tmp_path):
@@ -80,3 +80,70 @@ def test_data_profile_summarizes_class_counts_and_duplicate_removal():
     assert profile["class_percentages"] == {"fake": 66.7, "real": 33.3}
     assert profile["duplicate_texts_removed"] == 1
     assert profile["dataset_attribution"]["license"] == "Check the source dataset's license"
+
+
+def test_additional_real_examples_are_training_only_and_conflicts_are_rejected(tmp_path):
+    examples_path = tmp_path / "additional.csv"
+    pd.DataFrame({
+        "text": [
+            "A user-labelled real story with enough words to pass the configured minimum.",
+            "A known fake story repeated with a different label from the main data.",
+        ],
+        "label": ["real", "real"],
+    }).to_csv(examples_path, index=False)
+    base_data = pd.DataFrame({
+        "text": [
+            "An existing real story with enough words to pass the configured minimum.",
+            "A known fake story repeated with a different label from the main data.",
+        ],
+        "label": ["real", "fake"],
+    })
+
+    try:
+        load_additional_examples(examples_path, base_data, min_characters=1, expected_label="real")
+    except ValueError as error:
+        assert "conflict" in str(error)
+    else:
+        raise AssertionError("Conflicting REAL examples should be rejected.")
+
+
+def test_additional_real_examples_accept_only_real_labels_and_skip_existing_records(tmp_path):
+    examples_path = tmp_path / "additional.csv"
+    pd.DataFrame({
+        "text": [
+            "A story already in the primary data and labeled as real.",
+            "A new user-labelled real story with enough unique text.",
+        ],
+        "label": ["real", "real"],
+    }).to_csv(examples_path, index=False)
+    base_data = pd.DataFrame({
+        "text": ["A story already in the primary data and labeled as real."],
+        "label": ["real"],
+    })
+
+    result = load_additional_examples(
+        examples_path, base_data, min_characters=1, expected_label="real"
+    )
+
+    assert result.tolist() == ["A new user-labelled real story with enough unique text."]
+
+
+def test_additional_examples_reject_labels_outside_the_requested_class(tmp_path):
+    examples_path = tmp_path / "additional.csv"
+    pd.DataFrame({
+        "text": ["A fake-labelled claim with enough text to pass minimum length."],
+        "label": ["fake"],
+    }).to_csv(examples_path, index=False)
+    base_data = pd.DataFrame({
+        "text": ["An existing real story with enough words for this example."],
+        "label": ["real"],
+    })
+
+    try:
+        load_additional_examples(
+            examples_path, base_data, min_characters=1, expected_label="real"
+        )
+    except ValueError as error:
+        assert "only 'real' labels" in str(error)
+    else:
+        raise AssertionError("Examples with the wrong label should be rejected.")
